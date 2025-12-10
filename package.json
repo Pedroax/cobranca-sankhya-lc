@@ -1,0 +1,22 @@
+{
+  "name": "sankhya-api-integration",
+  "version": "1.0.0",
+  "description": "Integração com API Sankhya usando OAuth 2.0",
+  "main": "test-auth.js",
+  "scripts": {
+    "test:sandbox": "AMBIENTE=sandbox node test-auth.js",
+    "test:prod": "AMBIENTE=production node test-auth.js",
+    "test": "node test-auth.js"
+  },
+  "keywords": [
+    "sankhya",
+    "api",
+    "oauth2",
+    "integration"
+  ],
+  "author": "Automatex",
+  "license": "ISC",
+  "dependencies": {
+    "dotenv": "^16.4.5"
+  }
+}
