@@ -15,7 +15,7 @@
   "crons": [
     {
       "path": "/api/executar-cobranca",
-      "schedule": "0 12 * * 1-5"
+      "schedule": "0 15 * * 1-5"
     }
   ]
 }
