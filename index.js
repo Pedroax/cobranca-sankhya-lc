@@ -246,5 +246,158 @@ app.get('/api/titulos/:codparc', async (req, res) => {
   }
 });
 
+// Endpoint: Executar cobrança automática (Cron Job)
+app.get('/api/executar-cobranca', async (req, res) => {
+  console.log('🤖 Iniciando execução de cobrança automática...');
+
+  try {
+    // Verificar se é dia útil
+    const hoje = new Date();
+    const diaSemana = hoje.getDay(); // 0 = Domingo, 6 = Sábado
+
+    if (diaSemana === 0 || diaSemana === 6) {
+      console.log('⏸️  Hoje é fim de semana - cobrança não executada');
+      return res.json({
+        sucesso: false,
+        mensagem: 'Cobrança não executada - fim de semana',
+        data: hoje.toISOString()
+      });
+    }
+
+    const api = await getAPI();
+    const CobrancaBoletosClass = require('./automacoes/CobrancaBoletos');
+    const WhatsAppServiceClass = require('./automacoes/WhatsAppService');
+    const CadenciaCobrancaClass = require('./automacoes/CadenciaCobranca');
+    const ControleEnviosClass = require('./automacoes/ControleEnvios');
+    const BoletoItauPDFGeneratorClass = require('./automacoes/BoletoItauPDFGenerator');
+
+    const cobranca = new CobrancaBoletosClass(api);
+    const whatsapp = new WhatsAppServiceClass({
+      apiUrl: process.env.WHATSAPP_API_URL,
+      apiKey: process.env.WHATSAPP_API_KEY,
+      instanceName: process.env.WHATSAPP_INSTANCE,
+      provider: 'evolution'
+    });
+    const cadencia = new CadenciaCobrancaClass();
+    const controleEnvios = new ControleEnviosClass();
+    const geradorBoleto = new BoletoItauPDFGeneratorClass();
+
+    console.log('📊 Buscando títulos para cobrança...');
+
+    const resultados = {
+      data: hoje.toISOString(),
+      enviosRealizados: [],
+      erros: [],
+      totalProcessado: 0
+    };
+
+    // Buscar títulos para cada estágio da cadência
+    const estagios = ['lembrete', 'vencimento', 'atraso', 'cartorio'];
+
+    for (const estagio of estagios) {
+      console.log(`\n📋 Processando estágio: ${estagio}`);
+
+      const { dataInicio, dataFim } = cadencia.obterPeriodoEstagio(estagio);
+      const titulos = await cobranca.buscarTitulosVencimento(dataInicio, dataFim, {
+        apenasBoletos: true
+      });
+
+      console.log(`   Encontrados ${titulos.length} título(s)`);
+
+      for (const titulo of titulos) {
+        try {
+          resultados.totalProcessado++;
+
+          // Verificar se já foi enviado
+          if (controleEnvios.jaFoiEnviado(titulo.NUFIN, estagio)) {
+            console.log(`   ⏭️  NUFIN ${titulo.NUFIN} - já enviado (${estagio})`);
+            continue;
+          }
+
+          // Buscar dados do parceiro
+          const parceiro = await cobranca.buscarDadosCompletosParceiro(titulo.CODPARC);
+
+          if (!parceiro?.TELEFONE) {
+            console.log(`   ⚠️  NUFIN ${titulo.NUFIN} - sem telefone cadastrado`);
+            continue;
+          }
+
+          // Gerar mensagem
+          const MensagensCobrancaClass = require('./automacoes/MensagensCobranca');
+          const MensagensCobranca = MensagensCobrancaClass || class {
+            static lembrete(t, p) { return `Lembrete: Boleto NF ${t.NUMNOTA} vence em ${t.DTVENC}. Valor: R$ ${t.VLRDESDOB}`; }
+            static vencimento(t, p) { return `Boleto NF ${t.NUMNOTA} vence HOJE. Valor: R$ ${t.VLRDESDOB}`; }
+            static atraso(t, p) { return `Boleto NF ${t.NUMNOTA} vencido em ${t.DTVENC}. Valor: R$ ${t.VLRDESDOB}`; }
+            static cartorio(t, p) { return `URGENTE: Boleto NF ${t.NUMNOTA} será enviado para protesto. Valor: R$ ${t.VLRDESDOB}`; }
+          };
+
+          const mensagem = MensagensCobranca[estagio](titulo, parceiro);
+
+          // Gerar PDF do boleto
+          const caminhoTemp = `/tmp/boleto_${titulo.NUFIN}_${Date.now()}.pdf`;
+          await geradorBoleto.gerarBoleto(titulo, parceiro, caminhoTemp);
+
+          // Enviar mensagem
+          await whatsapp.enviarMensagem(parceiro.TELEFONE, mensagem);
+
+          // Aguardar 2 segundos
+          await new Promise(resolve => setTimeout(resolve, 2000));
+
+          // Enviar PDF
+          await whatsapp.enviarArquivo(
+            parceiro.TELEFONE,
+            caminhoTemp,
+            `Boleto - NF ${titulo.NUMNOTA}`,
+            `boleto_${titulo.NUFIN}.pdf`
+          );
+
+          // Registrar envio
+          controleEnvios.registrarEnvio(titulo.NUFIN, estagio, parceiro.CODPARC);
+
+          resultados.enviosRealizados.push({
+            nufin: titulo.NUFIN,
+            codparc: parceiro.CODPARC,
+            estagio,
+            telefone: parceiro.TELEFONE
+          });
+
+          console.log(`   ✅ NUFIN ${titulo.NUFIN} - enviado com sucesso`);
+
+          // Limpar arquivo temporário
+          try {
+            const fs = require('fs');
+            fs.unlinkSync(caminhoTemp);
+          } catch (e) {
+            // Ignorar erro ao deletar
+          }
+
+        } catch (error) {
+          console.error(`   ❌ Erro no NUFIN ${titulo.NUFIN}:`, error.message);
+          resultados.erros.push({
+            nufin: titulo.NUFIN,
+            erro: error.message
+          });
+        }
+      }
+    }
+
+    console.log('\n✅ Execução de cobrança concluída!');
+
+    res.json({
+      sucesso: true,
+      mensagem: 'Cobrança executada com sucesso',
+      ...resultados
+    });
+
+  } catch (error) {
+    console.error('❌ Erro ao executar cobrança:', error);
+    res.status(500).json({
+      sucesso: false,
+      erro: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
+  }
+});
+
 // Exportar para Vercel
 module.exports = app;
