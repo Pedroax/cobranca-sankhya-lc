@@ -1,0 +1,22 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "api-boletos.js",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "api-boletos.js"
+    },
+    {
+      "src": "/health",
+      "dest": "api-boletos.js"
+    }
+  ],
+  "env": {
+    "NODE_ENV": "production"
+  }
+}

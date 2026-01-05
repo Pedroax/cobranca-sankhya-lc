@@ -2,8 +2,10 @@
   "name": "sankhya-api-integration",
   "version": "1.0.0",
   "description": "Integração com API Sankhya usando OAuth 2.0",
-  "main": "test-auth.js",
+  "main": "api-boletos.js",
   "scripts": {
+    "start": "node api-boletos.js",
+    "dev": "node api-boletos.js",
     "test:sandbox": "AMBIENTE=sandbox node test-auth.js",
     "test:prod": "AMBIENTE=production node test-auth.js",
     "test": "node test-auth.js"

@@ -25,7 +25,10 @@
       "Bash(start \"\" \"c:\\Users\\pedro\\Desktop\\cobranca-sankhya\\exemplo-portal.html\")",
       "Bash(taskkill:*)",
       "Bash(tasklist:*)",
-      "Bash(git remote set-url:*)"
+      "Bash(git remote set-url:*)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nSistema de cobrança automática LC Baterias - Versão completa\n\nFuncionalidades implementadas:\n- Integração com API Sankhya para busca de títulos\n- Geração de boletos PDF idênticos ao JasperReports\n- Envio automático via WhatsApp (Evolution API)\n- Sistema de cadência (D-3, D-0, D+3, D+5)\n- Mensagens profissionais personalizadas\n- Controle de duplicação de envios\n- API REST para download de boletos no portal\n- Componente React para integração com Next.js\n\n🤖 Generated with Claude Code\nEOF\n)\")",
+      "Bash(git push:*)",
+      "Bash(git commit:*)"
     ],
     "deny": [],
     "ask": []
