@@ -10,7 +10,22 @@
       "Bash(nul)",
       "Bash(git init:*)",
       "Bash(git add:*)",
-      "Bash(rm:*)"
+      "Bash(rm:*)",
+      "Bash(wc:*)",
+      "Bash(curl:*)",
+      "Bash(cat:*)",
+      "Bash(start \"\" \"c:\\Users\\pedro\\Desktop\\cobranca-sankhya\\temp\\boleto_19106.pdf\")",
+      "Bash(start \"\" \"c:\\Users\\pedro\\Desktop\\cobranca-sankhya\\temp\\boleto_teste_19107.pdf\")",
+      "Bash(findstr:*)",
+      "Bash(dir /B \"C:\\Users\\pedro\\Desktop\\aplicativo_lc\")",
+      "Bash(find:*)",
+      "Bash(dir /S \"C:\\Users\\pedro\\Desktop\\aplicativo_lc\")",
+      "Bash(test:*)",
+      "Bash(.md$ \")",
+      "Bash(start \"\" \"c:\\Users\\pedro\\Desktop\\cobranca-sankhya\\exemplo-portal.html\")",
+      "Bash(taskkill:*)",
+      "Bash(tasklist:*)",
+      "Bash(git remote set-url:*)"
     ],
     "deny": [],
     "ask": []

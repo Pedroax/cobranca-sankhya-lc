@@ -437,6 +437,129 @@ class CobrancaBoletos {
     const [dia, mes, ano] = dataStr.split('/');
     return new Date(ano, mes - 1, dia);
   }
+
+  /**
+   * Busca dados COMPLETOS de um título específico
+   *
+   * Busca com includePresentationFields='S' para obter TODOS os campos,
+   * incluindo campos relacionados de outras tabelas (empresa, banco, etc.)
+   *
+   * Necessário para geração do boleto PDF.
+   *
+   * @param {number} nufin - NUFIN do título
+   * @returns {Promise<Object>} Dados completos do título
+   */
+  async buscarDadosCompletosTitulo(nufin) {
+    const requestBody = {
+      serviceName: 'CRUDServiceProvider.loadRecords',
+      requestBody: {
+        dataSet: {
+          rootEntity: 'Financeiro',
+          includePresentationFields: 'S',  // IMPORTANTE: 'S' traz campos relacionados
+          offsetPage: '0',
+          criteria: {
+            expression: {
+              $: 'this.NUFIN = ?'
+            },
+            parameter: [
+              { $: String(nufin), type: 'I' }
+            ]
+          },
+          entity: {
+            fieldset: {
+              list: '*'  // Todos os campos
+            }
+          }
+        }
+      }
+    };
+
+    const response = await this.api.post(
+      '/gateway/v1/mge/service.sbr?serviceName=CRUDServiceProvider.loadRecords&outputType=json',
+      requestBody
+    );
+
+    const entities = response.responseBody?.entities;
+    if (!entities || !entities.entity) {
+      throw new Error(`Título ${nufin} não encontrado`);
+    }
+
+    const tituloRaw = Array.isArray(entities.entity) ? entities.entity[0] : entities.entity;
+    const metadata = entities.metadata?.fields?.field || [];
+
+    // Mapear f0, f1, f2... para nomes de campos
+    const titulo = {};
+    metadata.forEach((field, index) => {
+      const fieldKey = `f${index}`;
+      const valor = tituloRaw[fieldKey];
+
+      if (valor !== undefined && valor !== null) {
+        titulo[field.name] = typeof valor === 'object' ? valor.$ : valor;
+      }
+    });
+
+    return titulo;
+  }
+
+  /**
+   * Busca dados completos de um parceiro
+   *
+   * Versão completa com todos os campos necessários para o boleto
+   *
+   * @param {number} codParc - Código do parceiro
+   * @returns {Promise<Object>} Dados completos do parceiro
+   */
+  async buscarDadosCompletosParceiro(codParc) {
+    const requestBody = {
+      serviceName: 'CRUDServiceProvider.loadRecords',
+      requestBody: {
+        dataSet: {
+          rootEntity: 'Parceiro',
+          includePresentationFields: 'S',
+          offsetPage: '0',
+          criteria: {
+            expression: {
+              $: 'this.CODPARC = ?'
+            },
+            parameter: [
+              { $: String(codParc), type: 'I' }
+            ]
+          },
+          entity: {
+            fieldset: {
+              list: '*'
+            }
+          }
+        }
+      }
+    };
+
+    const response = await this.api.post(
+      '/gateway/v1/mge/service.sbr?serviceName=CRUDServiceProvider.loadRecords&outputType=json',
+      requestBody
+    );
+
+    const entities = response.responseBody?.entities;
+    if (!entities || !entities.entity) {
+      throw new Error(`Parceiro ${codParc} não encontrado`);
+    }
+
+    const parceiroRaw = Array.isArray(entities.entity) ? entities.entity[0] : entities.entity;
+    const metadata = entities.metadata?.fields?.field || [];
+
+    // Mapear f0, f1, f2... para nomes de campos
+    const parceiro = {};
+    metadata.forEach((field, index) => {
+      const fieldKey = `f${index}`;
+      const valor = parceiroRaw[fieldKey];
+
+      if (valor !== undefined && valor !== null) {
+        parceiro[field.name] = typeof valor === 'object' ? valor.$ : valor;
+      }
+    });
+
+    return parceiro;
+  }
 }
 
 module.exports = CobrancaBoletos;

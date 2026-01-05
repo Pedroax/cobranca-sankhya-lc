@@ -1,8 +1,17 @@
-# Environment variables
+# Environment variables (SENSÍVEL - NUNCA COMMITAR)
 .env
+.env.local
+.env.production
 
 # Node modules
 node_modules/
+
+# Arquivos temporários e gerados
+temp/
+*.pdf
+
+# Controle de envios (contém dados de clientes)
+automacoes/envios-realizados.json
 
 # Logs
 *.log
@@ -15,3 +24,10 @@ Thumbs.db
 # IDE
 .vscode/
 .idea/
+
+# Claude Code
+.claude/settings.local.json
+
+# Backups
+*.backup
+*.bak

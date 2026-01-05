@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Portal LC Baterias - Boletos</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    header {
+      background: white;
+      padding: 20px 30px;
+      border-radius: 10px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      margin-bottom: 30px;
+    }
+
+    h1 {
+      color: #333;
+      font-size: 28px;
+    }
+
+    .subtitle {
+      color: #666;
+      font-size: 14px;
+      margin-top: 5px;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: white;
+      font-size: 18px;
+    }
+
+    .error {
+      background: #ff4444;
+      color: white;
+      padding: 20px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+    }
+
+    .boletos-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+      gap: 20px;
+    }
+
+    .boleto-card {
+      background: white;
+      border-radius: 10px;
+      padding: 25px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      transition: transform 0.3s, box-shadow 0.3s;
+    }
+
+    .boleto-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 8px 12px rgba(0,0,0,0.15);
+    }
+
+    .boleto-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+      padding-bottom: 15px;
+      border-bottom: 2px solid #f0f0f0;
+    }
+
+    .boleto-nf {
+      font-size: 20px;
+      font-weight: bold;
+      color: #333;
+    }
+
+    .badge {
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: bold;
+    }
+
+    .badge-vencido {
+      background: #ff4444;
+      color: white;
+    }
+
+    .badge-hoje {
+      background: #ff9800;
+      color: white;
+    }
+
+    .badge-avencer {
+      background: #4CAF50;
+      color: white;
+    }
+
+    .badge-pix {
+      background: #00D09C;
+      color: white;
+      display: inline-block;
+      margin-top: 10px;
+    }
+
+    .boleto-info {
+      margin: 15px 0;
+    }
+
+    .boleto-info p {
+      margin: 8px 0;
+      color: #666;
+      font-size: 14px;
+    }
+
+    .boleto-info strong {
+      color: #333;
+    }
+
+    .valor {
+      font-size: 24px;
+      font-weight: bold;
+      color: #667eea;
+      margin: 15px 0;
+    }
+
+    .btn {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.3s;
+      margin-top: 15px;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      transform: scale(1.02);
+      box-shadow: 0 4px 8px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn-secondary {
+      background: #f5f5f5;
+      color: #333;
+      font-size: 14px;
+      padding: 8px;
+      margin-top: 8px;
+    }
+
+    .btn-secondary:hover {
+      background: #e0e0e0;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      background: white;
+      border-radius: 10px;
+    }
+
+    .empty-state h2 {
+      color: #333;
+      margin-bottom: 10px;
+    }
+
+    .empty-state p {
+      color: #666;
+    }
+
+    .stats {
+      background: white;
+      border-radius: 10px;
+      padding: 20px;
+      margin-bottom: 20px;
+      display: flex;
+      justify-content: space-around;
+      text-align: center;
+    }
+
+    .stat-item h3 {
+      color: #667eea;
+      font-size: 32px;
+      margin-bottom: 5px;
+    }
+
+    .stat-item p {
+      color: #666;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>💰 Portal LC Baterias - Meus Boletos</h1>
+      <p class="subtitle">Seus boletos em aberto</p>
+    </header>
+
+    <div id="stats" style="display: none;"></div>
+    <div id="error" style="display: none;" class="error"></div>
+    <div id="loading" class="loading">Carregando boletos...</div>
+    <div id="boletos" class="boletos-grid"></div>
+  </div>
+
+  <script>
+    // CONFIGURAÇÃO
+    const API_URL = 'http://localhost:3001/api';
+    const CODPARC = 2878; // Código do cliente (vem da sessão/login)
+
+    // Formatar valor em reais
+    function formatarValor(valor) {
+      return valor.toLocaleString('pt-BR', {
+        style: 'currency',
+        currency: 'BRL'
+      });
+    }
+
+    // Obter badge de status
+    function getBadgeStatus(dias) {
+      if (dias < 0) {
+        return {
+          class: 'badge-vencido',
+          text: `Vencido há ${Math.abs(dias)} dias`
+        };
+      } else if (dias === 0) {
+        return {
+          class: 'badge-hoje',
+          text: 'Vence hoje!'
+        };
+      } else {
+        return {
+          class: 'badge-avencer',
+          text: `Vence em ${dias} dias`
+        };
+      }
+    }
+
+    // Baixar boleto
+    function baixarBoleto(nufin, notaFiscal) {
+      console.log(`Baixando boleto NUFIN ${nufin}...`);
+      window.open(`${API_URL}/boleto/${nufin}`, '_blank');
+    }
+
+    // Ver informações detalhadas
+    async function verInfo(nufin) {
+      try {
+        const response = await fetch(`${API_URL}/boleto/${nufin}/info`);
+        const info = await response.json();
+
+        alert(`
+Informações do Boleto
+
+NUFIN: ${info.nufin}
+Nota Fiscal: ${info.notaFiscal}
+Vencimento: ${info.vencimento}
+Valor: ${formatarValor(info.valor)}
+Nosso Número: ${info.nossoNumero}
+Linha Digitável: ${info.linhaDigitavel}
+PIX: ${info.temPix ? 'Disponível' : 'Não disponível'}
+
+Cliente: ${info.parceiro.nome}
+CPF/CNPJ: ${info.parceiro.cpfCnpj}
+        `);
+      } catch (error) {
+        alert('Erro ao buscar informações: ' + error.message);
+      }
+    }
+
+    // Carregar boletos
+    async function carregarBoletos() {
+      const loadingEl = document.getElementById('loading');
+      const boletosEl = document.getElementById('boletos');
+      const errorEl = document.getElementById('error');
+      const statsEl = document.getElementById('stats');
+
+      try {
+        loadingEl.style.display = 'block';
+        errorEl.style.display = 'none';
+
+        const response = await fetch(`${API_URL}/titulos/${CODPARC}`);
+        const data = await response.json();
+
+        loadingEl.style.display = 'none';
+
+        if (data.titulos.length === 0) {
+          boletosEl.innerHTML = `
+            <div class="empty-state">
+              <h2>✅ Nenhum boleto em aberto</h2>
+              <p>Você não possui boletos pendentes no momento.</p>
+            </div>
+          `;
+          return;
+        }
+
+        // Estatísticas
+        const totalValor = data.titulos.reduce((sum, t) => sum + t.valor, 0);
+        const vencidos = data.titulos.filter(t => t.diasParaVencimento < 0).length;
+
+        statsEl.style.display = 'flex';
+        statsEl.innerHTML = `
+          <div class="stat-item">
+            <h3>${data.total}</h3>
+            <p>Boletos</p>
+          </div>
+          <div class="stat-item">
+            <h3>${formatarValor(totalValor)}</h3>
+            <p>Valor Total</p>
+          </div>
+          <div class="stat-item">
+            <h3>${vencidos}</h3>
+            <p>Vencidos</p>
+          </div>
+        `;
+
+        // Listar boletos
+        boletosEl.innerHTML = data.titulos.map(titulo => {
+          const status = getBadgeStatus(titulo.diasParaVencimento);
+
+          return `
+            <div class="boleto-card">
+              <div class="boleto-header">
+                <div class="boleto-nf">NF ${titulo.notaFiscal}</div>
+                <span class="badge ${status.class}">${status.text}</span>
+              </div>
+
+              <div class="boleto-info">
+                <p><strong>Vencimento:</strong> ${titulo.vencimento}</p>
+                <p><strong>Nosso Número:</strong> ${titulo.nossoNumero}</p>
+              </div>
+
+              <div class="valor">${formatarValor(titulo.valor)}</div>
+
+              ${titulo.temPix ? '<span class="badge badge-pix">✅ PIX Disponível</span>' : ''}
+
+              <button class="btn btn-primary" onclick="baixarBoleto(${titulo.nufin}, '${titulo.notaFiscal}')">
+                📥 Baixar Boleto PDF
+              </button>
+
+              <button class="btn btn-secondary" onclick="verInfo(${titulo.nufin})">
+                ℹ️ Ver Informações
+              </button>
+            </div>
+          `;
+        }).join('');
+
+      } catch (error) {
+        loadingEl.style.display = 'none';
+        errorEl.style.display = 'block';
+        errorEl.innerHTML = `
+          <strong>❌ Erro ao carregar boletos</strong><br>
+          ${error.message}<br>
+          <small>Verifique se a API está rodando em ${API_URL}</small>
+        `;
+      }
+    }
+
+    // Carregar ao abrir a página
+    carregarBoletos();
+  </script>
+</body>
+</html>
