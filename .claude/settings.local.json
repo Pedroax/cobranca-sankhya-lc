@@ -28,7 +28,9 @@
       "Bash(git remote set-url:*)",
       "Bash(git commit -m \"$(cat <<''EOF''\nSistema de cobrança automática LC Baterias - Versão completa\n\nFuncionalidades implementadas:\n- Integração com API Sankhya para busca de títulos\n- Geração de boletos PDF idênticos ao JasperReports\n- Envio automático via WhatsApp (Evolution API)\n- Sistema de cadência (D-3, D-0, D+3, D+5)\n- Mensagens profissionais personalizadas\n- Controle de duplicação de envios\n- API REST para download de boletos no portal\n- Componente React para integração com Next.js\n\n🤖 Generated with Claude Code\nEOF\n)\")",
       "Bash(git push:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nAdiciona método obterPeriodoEstagio na CadenciaCobranca\n\n- Fix: cadencia.obterPeriodoEstagio is not a function\n- Método calcula período de datas para buscar títulos de cada estágio\n- Mapeia estágios \\(lembrete, vencimento, atraso, cartorio\\) para dias\n\n🤖 Generated with Claude Code\n\nCo-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nCria arquivo MensagensCobranca.js com templates de cobrança\n\n- Fix: Cannot find module ''./automacoes/MensagensCobranca''\n- Adiciona templates profissionais para cada estágio\n- Métodos: lembrete, vencimento, atraso, cartorio\n- Mensagens personalizadas com nome do cliente e formatação\n\n🤖 Generated with Claude Code\n\nCo-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>\nEOF\n\\)\")"
     ],
     "deny": [],
     "ask": []
