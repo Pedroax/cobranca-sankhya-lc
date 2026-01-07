@@ -207,11 +207,14 @@ Pedimos o pagamento imediato ou envio do comprovante caso já tenha efetuado o p
     hoje.setHours(0, 0, 0, 0);
 
     // Mapear estágios para dias
+    // ATENÇÃO: O sinal é INVERTIDO do que parece!
+    // Para buscar títulos que VENCEM em 3 dias, precisamos somar +3
+    // Para buscar títulos VENCIDOS há 3 dias, precisamos subtrair -3
     const mapeamento = {
-      'lembrete': -3,    // 3 dias ANTES
-      'vencimento': 0,    // HOJE
-      'atraso': 3,        // 3 dias APÓS
-      'cartorio': 5       // 5 dias APÓS
+      'lembrete': 3,     // Busca títulos que VENCEM em 3 dias (hoje + 3)
+      'vencimento': 0,    // Busca títulos que VENCEM hoje (hoje + 0)
+      'atraso': -3,       // Busca títulos VENCIDOS há 3 dias (hoje - 3)
+      'cartorio': -5      // Busca títulos VENCIDOS há 5 dias (hoje - 5)
     };
 
     const dias = mapeamento[estagio];
@@ -220,7 +223,7 @@ Pedimos o pagamento imediato ou envio do comprovante caso já tenha efetuado o p
       throw new Error(`Estágio '${estagio}' não reconhecido`);
     }
 
-    // Calcular a data alvo
+    // Calcular a data alvo (data de vencimento dos títulos que queremos buscar)
     const dataAlvo = new Date(hoje);
     dataAlvo.setDate(dataAlvo.getDate() + dias);
 
