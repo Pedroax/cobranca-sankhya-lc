@@ -197,6 +197,41 @@ Pedimos o pagamento imediato ou envio do comprovante caso já tenha efetuado o p
   }
 
   /**
+   * Obtém o período de datas para buscar títulos de um estágio específico
+   *
+   * @param {string} estagio - Nome do estágio (lembrete, vencimento, atraso, cartorio)
+   * @returns {Object} Objeto com dataInicio e dataFim
+   */
+  obterPeriodoEstagio(estagio) {
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+
+    // Mapear estágios para dias
+    const mapeamento = {
+      'lembrete': -3,    // 3 dias ANTES
+      'vencimento': 0,    // HOJE
+      'atraso': 3,        // 3 dias APÓS
+      'cartorio': 5       // 5 dias APÓS
+    };
+
+    const dias = mapeamento[estagio];
+
+    if (dias === undefined) {
+      throw new Error(`Estágio '${estagio}' não reconhecido`);
+    }
+
+    // Calcular a data alvo
+    const dataAlvo = new Date(hoje);
+    dataAlvo.setDate(dataAlvo.getDate() + dias);
+
+    // Retornar mesmo dia como início e fim (busca exata)
+    return {
+      dataInicio: new Date(dataAlvo),
+      dataFim: new Date(dataAlvo)
+    };
+  }
+
+  /**
    * Calcula dias até vencimento
    */
   calcularDiasVencimento(dataVencimento) {
