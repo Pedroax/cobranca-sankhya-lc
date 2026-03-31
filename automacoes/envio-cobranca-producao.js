@@ -233,14 +233,14 @@ async function executarCobranca() {
         const tituloCompleto = await cobranca.buscarDadosCompletosTitulo(titulo.NUFIN);
         const parceiro = await cobranca.buscarDadosCompletosParceiro(titulo.CODPARC);
 
-        // Verificar telefone
-        if (!parceiro.TELEFONE) {
-          console.log(`      ⚠️  Sem telefone cadastrado — pulando`);
+        // Usar FAX como WhatsApp (campo que contém o celular no Sankhya)
+        if (!parceiro.FAX) {
+          console.log(`      ⚠️  Sem WhatsApp cadastrado (FAX vazio) — pulando`);
           ignorados++;
           continue;
         }
 
-        const numeroWhatsApp = whatsapp.formatarNumero(parceiro.TELEFONE);
+        const numeroWhatsApp = whatsapp.formatarNumero(parceiro.FAX);
 
         // Verificar se o template precisa de documento (D+1 e D+3)
         const configInicial = obterConfigTemplate(diasParaVencimento, tituloCompleto, parceiro, null);
