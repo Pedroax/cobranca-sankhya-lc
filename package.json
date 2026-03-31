@@ -5,6 +5,7 @@
   "main": "api-boletos.js",
   "scripts": {
     "start": "node api-boletos.js",
+    "cobranca": "node automacoes/envio-cobranca-producao.js",
     "dev": "node api-boletos.js",
     "test:sandbox": "AMBIENTE=sandbox node test-auth.js",
     "test:prod": "AMBIENTE=production node test-auth.js",

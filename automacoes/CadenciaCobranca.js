@@ -15,25 +15,18 @@
 
 class CadenciaCobranca {
   constructor() {
-    // Configuração da cadência Automatex
-    // - 3 DIAS ANTES DO VENCIMENTO
-    // - NO DIA DO VENCIMENTO
-    // - 3 DIAS APÓS VENCIDO
-    // - 5 DIAS APÓS VENCIDO COM AVISO DE CARTÓRIO
+    // Cadência: apenas títulos VENCIDOS
+    // - D+1: 1 dia de atraso  → template 1_apos_3dias (com boleto PDF)
+    // - D+3: 3 dias de atraso → template 2_apos_3dias (com boleto PDF)
+    // - D+5: 5 dias de atraso → template 3_apo_5dias  (sem boleto)
+    //
+    // OBS: diasParaVencimento é negativo para títulos vencidos.
+    // Ex: vencido há 1 dia = diasParaVencimento = -1
     this.cadenciaPadrao = [
-      { dias: -3, tipo: 'lembrete', prioridade: 'baixa' },
-      { dias: 0, tipo: 'vencimento', prioridade: 'media' },
-      { dias: 3, tipo: 'vencido', prioridade: 'alta' },
-      { dias: 5, tipo: 'cartorio', prioridade: 'urgente' }
+      { dias: -1, tipo: 'atraso_1', prioridade: 'media',   template: '1_apos_3dias', precisaDocumento: true  },
+      { dias: -3, tipo: 'atraso_3', prioridade: 'alta',    template: '2_apos_3dias', precisaDocumento: true  },
+      { dias: -5, tipo: 'cartorio', prioridade: 'urgente', template: '3_apo_5dias',  precisaDocumento: false }
     ];
-
-    // Templates de mensagem
-    this.templates = {
-      lembrete: this.templateLembrete,
-      vencimento: this.templateVencimento,
-      vencido: this.templateVencido,
-      cartorio: this.templateCartorio
-    };
   }
 
   /**
@@ -211,10 +204,9 @@ Pedimos o pagamento imediato ou envio do comprovante caso já tenha efetuado o p
     // Para buscar títulos que VENCEM em 3 dias, precisamos somar +3
     // Para buscar títulos VENCIDOS há 3 dias, precisamos subtrair -3
     const mapeamento = {
-      'lembrete': 3,     // Busca títulos que VENCEM em 3 dias (hoje + 3)
-      'vencimento': 0,    // Busca títulos que VENCEM hoje (hoje + 0)
-      'atraso': -3,       // Busca títulos VENCIDOS há 3 dias (hoje - 3)
-      'cartorio': -5      // Busca títulos VENCIDOS há 5 dias (hoje - 5)
+      'atraso_1': -1,  // Títulos VENCIDOS há 1 dia (hoje - 1)
+      'atraso_3': -3,  // Títulos VENCIDOS há 3 dias (hoje - 3)
+      'cartorio': -5   // Títulos VENCIDOS há 5 dias (hoje - 5)
     };
 
     const dias = mapeamento[estagio];
