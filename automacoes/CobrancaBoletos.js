@@ -76,13 +76,17 @@ class CobrancaBoletos {
       expressions.push('this.DHBAIXA IS NULL');
     }
 
-    // Apenas títulos com boleto (NOSSONUM preenchido)
+    // Apenas boletos bancários (CODTIPTIT = 4)
     if (apenasComBoleto) {
-      expressions.push('this.NOSSONUM IS NOT NULL');
+      expressions.push('this.CODTIPTIT = ?');
+      parameters.push({ $: '4', type: 'I' });
     }
 
     // Não incluir provisões
     expressions.push("(this.PROVISAO IS NULL OR this.PROVISAO <> 'S')");
+
+    // Apenas empresas 1 a 8
+    expressions.push('this.CODEMP IN (1,2,3,4,5,6,7,8)');
 
     const requestBody = {
       serviceName: 'CRUDServiceProvider.loadRecords',
