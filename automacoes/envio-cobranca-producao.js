@@ -213,8 +213,8 @@ async function executarCobranca() {
           cobranca.parsearDataSankhya(titulo.DTVENC)
         );
 
-        // Apenas D+1, D+3, D+5
-        if (![-1, -3, -5].includes(diasParaVencimento)) {
+        // Apenas D+1 e D+3 (D+5 desativado até novo template com PDF ser aprovado)
+        if (![-1, -3].includes(diasParaVencimento)) {
           ignorados++;
           continue;
         }
