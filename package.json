@@ -20,6 +20,7 @@
   "author": "Automatex",
   "license": "ISC",
   "dependencies": {
+    "@supabase/supabase-js": "^2.101.1",
     "axios": "^1.13.2",
     "bwip-js": "^4.8.0",
     "cors": "^2.8.5",

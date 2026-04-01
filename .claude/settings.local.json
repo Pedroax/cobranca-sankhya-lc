@@ -30,7 +30,9 @@
       "Bash(git push:*)",
       "Bash(git commit:*)",
       "Bash(git commit -m \"$\\(cat <<''EOF''\nAdiciona método obterPeriodoEstagio na CadenciaCobranca\n\n- Fix: cadencia.obterPeriodoEstagio is not a function\n- Método calcula período de datas para buscar títulos de cada estágio\n- Mapeia estágios \\(lembrete, vencimento, atraso, cartorio\\) para dias\n\n🤖 Generated with Claude Code\n\nCo-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
-      "Bash(git commit -m \"$\\(cat <<''EOF''\nCria arquivo MensagensCobranca.js com templates de cobrança\n\n- Fix: Cannot find module ''./automacoes/MensagensCobranca''\n- Adiciona templates profissionais para cada estágio\n- Métodos: lembrete, vencimento, atraso, cartorio\n- Mensagens personalizadas com nome do cliente e formatação\n\n🤖 Generated with Claude Code\n\nCo-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>\nEOF\n\\)\")"
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nCria arquivo MensagensCobranca.js com templates de cobrança\n\n- Fix: Cannot find module ''./automacoes/MensagensCobranca''\n- Adiciona templates profissionais para cada estágio\n- Métodos: lembrete, vencimento, atraso, cartorio\n- Mensagens personalizadas com nome do cliente e formatação\n\n🤖 Generated with Claude Code\n\nCo-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(curl -s \"https://cobranca-sankhya-lc.vercel.app/api/executar-cobranca\")",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nFIX CRÍTICO: Corrige lógica invertida de datas na cadência\n\n- Bug: Sistema buscava datas futuras para atraso/cartório\n- Enviava msg de \"vencido\" para boletos que ainda vão vencer\n- Exemplo: Enviava \"vencido há 5 dias\" para boleto que vence em 5 dias\n\nCorreção:\n- lembrete: +3 \\(vencem EM 3 dias\\)\n- vencimento: 0 \\(vencem HOJE\\)\n- atraso: -3 \\(venceram HÁ 3 dias\\)\n- cartorio: -5 \\(venceram HÁ 5 dias\\)\n\n🤖 Generated with Claude Code\n\nCo-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>\nEOF\n\\)\")"
     ],
     "deny": [],
     "ask": []

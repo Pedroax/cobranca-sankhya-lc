@@ -16,11 +16,40 @@ const path = require('path');
 const fs = require('fs').promises;
 require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 
+const { createClient } = require('@supabase/supabase-js');
 const SankhyaAPI = require('../SankhyaAPI');
 const CobrancaBoletos = require('./CobrancaBoletos');
 const WhatsAppService = require('./WhatsAppService');
 const BoletoItauPDFGenerator = require('./BoletoItauPDFGenerator');
 const ControleEnvios = require('./ControleEnvios');
+
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE
+);
+
+async function salvarMensagemEnviada(telefone, nomeCliente, codparc, templateNome, nfNumero, wamid) {
+  // Upsert contato
+  await supabase.from('cobranca_contatos').upsert({
+    telefone,
+    nome: nomeCliente,
+    codparc,
+    ultima_mensagem: `📄 ${templateNome} — NF ${nfNumero}`,
+    ultima_mensagem_at: new Date().toISOString(),
+    nao_lidas: 0
+  }, { onConflict: 'telefone', ignoreDuplicates: false });
+
+  // Salvar mensagem
+  await supabase.from('cobranca_mensagens').insert({
+    telefone,
+    wamid,
+    direcao: 'enviada',
+    tipo: 'template',
+    template_nome: templateNome,
+    nf_numero: nfNumero,
+    status: 'enviada'
+  });
+}
 
 // Configuração Sankhya
 const sankhyaConfig = {
@@ -271,7 +300,18 @@ async function executarCobranca() {
 
         // Enviar template
         console.log(`      📤 Enviando template "${config.nome}" (${config.tipo}) para ${numeroWhatsApp}...`);
-        await whatsapp.enviarTemplate(numeroWhatsApp, config.nome, config.components);
+        const resultado = await whatsapp.enviarTemplate(numeroWhatsApp, config.nome, config.components);
+
+        // Salvar no Supabase (inbox)
+        const wamid = resultado?.messages?.[0]?.id || null;
+        await salvarMensagemEnviada(
+          numeroWhatsApp,
+          parceiro.NOMEPARC,
+          titulo.CODPARC,
+          config.nome,
+          String(tituloCompleto.NUMNOTA || titulo.NUFIN),
+          wamid
+        ).catch(e => console.warn('Supabase log error:', e.message));
 
         // Registrar envio
         controleEnvios.registrarEnvio(chaveEnvio, {
