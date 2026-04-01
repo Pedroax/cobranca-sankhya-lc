@@ -209,9 +209,12 @@ async function executarCobranca() {
 
       try {
         // Calcular dias de atraso (negativo = vencido)
-        const diasParaVencimento = cobranca.calcularDiasParaVencimento(
-          cobranca.parsearDataSankhya(titulo.DTVENC)
-        );
+        const [dia, mes, ano] = titulo.DTVENC.split('/');
+        const venc = new Date(ano, mes - 1, dia);
+        const hoje = new Date();
+        hoje.setHours(0, 0, 0, 0);
+        venc.setHours(0, 0, 0, 0);
+        const diasParaVencimento = Math.ceil((venc - hoje) / (1000 * 60 * 60 * 24));
 
         // Apenas D+1 e D+3 (D+5 desativado até novo template com PDF ser aprovado)
         if (![-1, -3].includes(diasParaVencimento)) {
