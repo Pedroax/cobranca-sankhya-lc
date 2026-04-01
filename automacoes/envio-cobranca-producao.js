@@ -28,6 +28,77 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE
 );
 
+// Feriados nacionais fixos (MM-DD)
+const FERIADOS_FIXOS = new Set([
+  '01-01', // Confraternização Universal
+  '04-21', // Tiradentes
+  '05-01', // Dia do Trabalho
+  '09-07', // Independência
+  '10-12', // Nossa Senhora Aparecida
+  '11-02', // Finados
+  '11-15', // Proclamação da República
+  '11-20', // Consciência Negra
+  '12-25', // Natal
+]);
+
+function isFeriadoNacional(data) {
+  const mes = String(data.getMonth() + 1).padStart(2, '0');
+  const dia = String(data.getDate()).padStart(2, '0');
+  return FERIADOS_FIXOS.has(`${mes}-${dia}`);
+}
+
+function isDiaUtil(data) {
+  const dow = data.getDay(); // 0=dom, 6=sab
+  return dow !== 0 && dow !== 6 && !isFeriadoNacional(data);
+}
+
+/**
+ * Ajusta o vencimento para o próximo dia útil se cair em fim de semana ou feriado.
+ * Ex: vence sábado → considera segunda como vencimento efetivo.
+ */
+function vencimentoEfetivo(data) {
+  const d = new Date(data);
+  d.setHours(0, 0, 0, 0);
+  while (!isDiaUtil(d)) {
+    d.setDate(d.getDate() + 1);
+  }
+  return d;
+}
+
+/**
+ * Calcula dias de atraso em dias úteis a partir do vencimento efetivo.
+ * Retorna número negativo para títulos vencidos.
+ * Ex: vencimento efetivo ontem (1 dia útil atrás) → -1
+ */
+function calcularDiasUteisAtraso(dataVencStr) {
+  const [dia, mes, ano] = dataVencStr.split('/');
+  const venc = new Date(ano, mes - 1, dia);
+  venc.setHours(0, 0, 0, 0);
+
+  const vencEfetivo = vencimentoEfetivo(venc);
+
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+
+  // Se vencimento efetivo ainda não chegou ou é hoje, não está atrasado
+  if (vencEfetivo >= hoje) return 0;
+
+  // Contar dias úteis entre vencimento efetivo e hoje (exclusive hoje)
+  let diasUteis = 0;
+  const cursor = new Date(vencEfetivo);
+  cursor.setDate(cursor.getDate() + 1); // começa no dia seguinte ao vencimento efetivo
+
+  while (cursor < hoje) {
+    if (isDiaUtil(cursor)) diasUteis++;
+    cursor.setDate(cursor.getDate() + 1);
+  }
+
+  // Conta hoje também se for dia útil
+  if (isDiaUtil(hoje)) diasUteis++;
+
+  return -diasUteis; // negativo = atrasado
+}
+
 async function salvarMensagemEnviada(telefone, nomeCliente, codparc, templateNome, nfNumero, wamid) {
   // Upsert contato
   await supabase.from('cobranca_contatos').upsert({
@@ -214,8 +285,9 @@ async function executarCobranca() {
     const dataFim = new Date(hoje);
     dataFim.setDate(dataFim.getDate() - 1);  // até ontem
 
+    // Busca 10 dias corridos atrás para cobrir feriados e fins de semana prolongados
     const dataInicio = new Date(hoje);
-    dataInicio.setDate(dataInicio.getDate() - 5);  // desde 5 dias atrás
+    dataInicio.setDate(dataInicio.getDate() - 10);
 
     const titulos = await cobranca.buscarTitulosVencimento(
       dataInicio,
@@ -237,13 +309,8 @@ async function executarCobranca() {
       let caminhoBoletoPDF = null;
 
       try {
-        // Calcular dias de atraso (negativo = vencido)
-        const [dia, mes, ano] = titulo.DTVENC.split('/');
-        const venc = new Date(ano, mes - 1, dia);
-        const hoje = new Date();
-        hoje.setHours(0, 0, 0, 0);
-        venc.setHours(0, 0, 0, 0);
-        const diasParaVencimento = Math.ceil((venc - hoje) / (1000 * 60 * 60 * 24));
+        // Calcular dias úteis de atraso (negativo = vencido)
+        const diasParaVencimento = calcularDiasUteisAtraso(titulo.DTVENC);
 
         // Apenas D+1 e D+3 (D+5 desativado até novo template com PDF ser aprovado)
         if (![-1, -3].includes(diasParaVencimento)) {
