@@ -154,11 +154,10 @@ function formatarValorTemplate(valor) {
 }
 
 /**
- * Retorna a configuração do template baseada nos dias de atraso
- * diasParaVencimento é negativo para títulos vencidos:
- *   -1 = vencido há 1 dia (D+1)
- *   -3 = vencido há 3 dias (D+3)
- *   -5 = vencido há 5 dias (D+5)
+ * Retorna a configuração do template baseada nos dias úteis de atraso:
+ *   D+1, D+2 → template 1 (com PDF)
+ *   D+3, D+4 → template 3 (com PDF)
+ *   D+5      → template 5
  */
 function obterConfigTemplate(diasParaVencimento, titulo, parceiro, mediaId = null) {
   const nfNumero = String(titulo.NUMNOTA || titulo.NUFIN);
@@ -166,80 +165,58 @@ function obterConfigTemplate(diasParaVencimento, titulo, parceiro, mediaId = nul
   const primeiroNome = (parceiro.NOMEPARC || 'Cliente').split(' ')[0];
   const valorBoleto = formatarValorTemplate(titulo.VLRDESDOB);
 
-  if (diasParaVencimento === -1) {
+  const componenteHeader = (mediaId) => ({
+    type: 'header',
+    parameters: [
+      { type: 'document', document: { id: mediaId, filename: `boleto_${titulo.NUFIN}.pdf` } }
+    ]
+  });
+
+  const componenteBody12 = {
+    type: 'body',
+    parameters: [
+      { type: 'text', parameter_name: 'nf_numero', text: nfNumero },
+      { type: 'text', parameter_name: 'data_vencimento', text: dataVencimento }
+    ]
+  };
+
+  const componenteBody5 = {
+    type: 'body',
+    parameters: [
+      { type: 'text', parameter_name: 'nome_cliente', text: primeiroNome },
+      { type: 'text', parameter_name: 'nf_numero', text: nfNumero },
+      { type: 'text', parameter_name: 'data_vencimento', text: dataVencimento },
+      { type: 'text', parameter_name: 'valor_boleto', text: valorBoleto }
+    ]
+  };
+
+  // D+1 e D+2 → template 1
+  if (diasParaVencimento === -1 || diasParaVencimento === -2) {
     return {
       nome: TEMPLATES.D1,
-      tipo: 'D+1',
+      tipo: `D+${Math.abs(diasParaVencimento)}`,
       precisaDocumento: true,
-      components: [
-        {
-          type: 'header',
-          parameters: [
-            {
-              type: 'document',
-              document: {
-                id: mediaId,
-                filename: `boleto_${titulo.NUFIN}.pdf`
-              }
-            }
-          ]
-        },
-        {
-          type: 'body',
-          parameters: [
-            { type: 'text', parameter_name: 'nf_numero', text: nfNumero },
-            { type: 'text', parameter_name: 'data_vencimento', text: dataVencimento }
-          ]
-        }
-      ]
+      components: [componenteHeader(mediaId), componenteBody12]
     };
   }
 
-  if (diasParaVencimento === -3) {
+  // D+3 e D+4 → template 3
+  if (diasParaVencimento === -3 || diasParaVencimento === -4) {
     return {
       nome: TEMPLATES.D3,
-      tipo: 'D+3',
+      tipo: `D+${Math.abs(diasParaVencimento)}`,
       precisaDocumento: true,
-      components: [
-        {
-          type: 'header',
-          parameters: [
-            {
-              type: 'document',
-              document: {
-                id: mediaId,
-                filename: `boleto_${titulo.NUFIN}.pdf`
-              }
-            }
-          ]
-        },
-        {
-          type: 'body',
-          parameters: [
-            { type: 'text', parameter_name: 'nf_numero', text: nfNumero },
-            { type: 'text', parameter_name: 'data_vencimento', text: dataVencimento }
-          ]
-        }
-      ]
+      components: [componenteHeader(mediaId), componenteBody12]
     };
   }
 
+  // D+5 → template 5
   if (diasParaVencimento === -5) {
     return {
       nome: TEMPLATES.D5,
       tipo: 'D+5',
       precisaDocumento: false,
-      components: [
-        {
-          type: 'body',
-          parameters: [
-            { type: 'text', parameter_name: 'nome_cliente', text: primeiroNome },
-            { type: 'text', parameter_name: 'nf_numero', text: nfNumero },
-            { type: 'text', parameter_name: 'data_vencimento', text: dataVencimento },
-            { type: 'text', parameter_name: 'valor_boleto', text: valorBoleto }
-          ]
-        }
-      ]
+      components: [componenteBody5]
     };
   }
 
@@ -255,6 +232,13 @@ async function executarCobranca() {
   console.log(`Data/Hora: ${new Date().toLocaleString('pt-BR')}`);
   console.log('Provider: Meta WhatsApp Cloud API (Oficial)');
   console.log('='.repeat(60));
+
+  // Não enviar em fins de semana
+  const diaSemana = new Date().getDay();
+  if (diaSemana === 0 || diaSemana === 6) {
+    console.log('\n📅 Fim de semana — execução ignorada.');
+    return;
+  }
 
   // Validar credenciais Meta
   if (!whatsappConfig.phoneNumberId || !whatsappConfig.accessToken) {
@@ -312,8 +296,8 @@ async function executarCobranca() {
         // Calcular dias úteis de atraso (negativo = vencido)
         const diasParaVencimento = calcularDiasUteisAtraso(titulo.DTVENC);
 
-        // Apenas D+1 e D+3 (D+5 desativado até novo template com PDF ser aprovado)
-        if (![-1, -3].includes(diasParaVencimento)) {
+        // D+1 até D+5 (dias úteis de atraso)
+        if (diasParaVencimento < -5 || diasParaVencimento >= 0) {
           ignorados++;
           continue;
         }
