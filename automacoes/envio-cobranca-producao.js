@@ -140,7 +140,7 @@ const whatsappConfig = {
 const TEMPLATES = {
   D1: process.env.META_TEMPLATE_D1 || '1_apos_3dias',  // 1 dia de atraso (com PDF)
   D3: process.env.META_TEMPLATE_D3 || '2_apos_3dias',  // 3 dias de atraso (com PDF)
-  D5: process.env.META_TEMPLATE_D5 || '3_apo_5dias'    // 5 dias de atraso (sem PDF)
+  D5: process.env.META_TEMPLATE_D5 || '2_apos_5dias'   // 5 dias de atraso
 };
 
 /**
