@@ -138,8 +138,9 @@ const whatsappConfig = {
 
 // Templates aprovados
 const TEMPLATES = {
-  D1: process.env.META_TEMPLATE_D1 || '1_apos_3dias',  // 1 dia de atraso (com PDF)
-  D3: process.env.META_TEMPLATE_D3 || '2_apos_3dias',  // 3 dias de atraso (com PDF)
+  D0: process.env.META_TEMPLATE_D0 || 'no_vencimento', // no dia do vencimento (com PDF)
+  D1: process.env.META_TEMPLATE_D1 || '1_apos_3dias',  // 1-2 dias de atraso (com PDF)
+  D3: process.env.META_TEMPLATE_D3 || '2_apos_3dias',  // 3-4 dias de atraso (com PDF)
   D5: process.env.META_TEMPLATE_D5 || '2_apos_5dias'   // 5 dias de atraso
 };
 
@@ -189,6 +190,26 @@ function obterConfigTemplate(diasParaVencimento, titulo, parceiro, mediaId = nul
       { type: 'text', parameter_name: 'valor_boleto', text: valorBoleto }
     ]
   };
+
+  // D0 → no_vencimento (com PDF)
+  if (diasParaVencimento === 0) {
+    return {
+      nome: TEMPLATES.D0,
+      tipo: 'D+0',
+      precisaDocumento: true,
+      components: [
+        componenteHeader(mediaId),
+        {
+          type: 'body',
+          parameters: [
+            { type: 'text', parameter_name: 'nf_numero', text: nfNumero },
+            { type: 'text', parameter_name: 'data_vencimento', text: dataVencimento },
+            { type: 'text', parameter_name: 'valor_boleto', text: valorBoleto }
+          ]
+        }
+      ]
+    };
+  }
 
   // D+1 e D+2 → template 1
   if (diasParaVencimento === -1 || diasParaVencimento === -2) {
@@ -266,8 +287,7 @@ async function executarCobranca() {
     const hoje = new Date();
     hoje.setHours(0, 0, 0, 0);
 
-    const dataFim = new Date(hoje);
-    dataFim.setDate(dataFim.getDate() - 1);  // até ontem
+    const dataFim = new Date(hoje);  // até hoje (inclui D+0)
 
     // Busca 10 dias corridos atrás para cobrir feriados e fins de semana prolongados
     const dataInicio = new Date(hoje);
@@ -296,8 +316,8 @@ async function executarCobranca() {
         // Calcular dias úteis de atraso (negativo = vencido)
         const diasParaVencimento = calcularDiasUteisAtraso(titulo.DTVENC);
 
-        // D+1 até D+5 (dias úteis de atraso)
-        if (diasParaVencimento < -5 || diasParaVencimento >= 0) {
+        // D+0 até D+5 (0 = vence hoje, negativo = atrasado)
+        if (diasParaVencimento < -5 || diasParaVencimento > 0) {
           ignorados++;
           continue;
         }
