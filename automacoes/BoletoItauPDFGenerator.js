@@ -510,10 +510,16 @@ class BoletoItauPDFGenerator {
    */
   extrairAgenciaCodigo(titulo) {
     const agencia = titulo.CODAGE || titulo.AGENCIA || '6557';
-    // Log temporário para identificar o campo correto da conta
-    const camposConta = Object.keys(titulo).filter(k => k.toLowerCase().includes('cta') || k.toLowerCase().includes('conta') || k.toLowerCase().includes('ctabco'));
-    console.log('[DEBUG conta] campos encontrados:', camposConta.map(k => `${k}=${titulo[k]}`));
-    const conta = titulo.CODCTABCO || titulo.CODCTABCOINT || titulo.CONTA || '';
+
+    // Extrair número da conta da descrição da conta bancária (ex: "BARREIRAS - ITAU 98115-3" → "98115-3")
+    let conta = '';
+    const descricao = titulo['ContaBancaria_DESCRICAO'] || '';
+    if (descricao) {
+      const match = descricao.match(/[\d][\d.-]+[\d]$/);
+      if (match) conta = match[0];
+    }
+    if (!conta) conta = titulo.CODCTABCOINT || '';
+
     return `${agencia}       /       ${conta}`;
   }
 
