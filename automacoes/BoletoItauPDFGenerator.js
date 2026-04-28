@@ -510,7 +510,7 @@ class BoletoItauPDFGenerator {
    */
   extrairAgenciaCodigo(titulo) {
     const agencia = titulo.CODAGE || titulo.AGENCIA || '6557';
-    const conta = titulo.CODCTABCOINT || titulo.CONTA || '109185';
+    const conta = titulo.CODCTABCO || titulo.CODCTABCOINT || titulo.CONTA || '';
     return `${agencia}       /       ${conta}`;
   }
 
@@ -545,9 +545,10 @@ class BoletoItauPDFGenerator {
 
     const linhas = [];
 
-    // Linha 1: Sacado + nome (sem código do parceiro, conforme JRXML)
+    // Linha 1: Sacado + nome + CNPJ/CPF
     const nome = parceiro.NOMEPARC || parceiro.RAZAOSOCIAL || '';
-    linhas.push(`Sacado ${nome}`);
+    const cnpj = parceiro.CGC_CPF ? ` - CPF/CNPJ: ${parceiro.CGC_CPF}` : '';
+    linhas.push(`Sacado ${nome}${cnpj}`);
 
     // Linha 2: Endereço completo (conforme JRXML: endereço + número)
     // Usar presentation field Endereco_NOMEEND ou campos diretos
