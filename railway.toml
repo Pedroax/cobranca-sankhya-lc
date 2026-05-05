@@ -5,5 +5,5 @@ builder = "nixpacks"
 # Executa todo dia às 9h horário de Brasília (12:00 UTC, BRT = UTC-3)
 # Para mudar o horário: ajuste a hora (ex: 0 13 * * * = 10h Brasília)
 # Para rodar só dias úteis: 0 12 * * 1-5
-cronSchedule = "0 15 * * *"
+cronSchedule = "0 12 * * *"
 startCommand = "node automacoes/envio-cobranca-producao.js"
