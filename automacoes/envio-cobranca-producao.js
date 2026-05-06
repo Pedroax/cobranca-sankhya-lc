@@ -155,6 +155,33 @@ function formatarValorTemplate(valor) {
 }
 
 /**
+ * Retorna o nome do template baseado nos dias de atraso (sem precisar de titulo/parceiro).
+ * Usado para checar duplicata no Supabase antes de buscar dados completos.
+ */
+function obterTemplateNome(diasParaVencimento) {
+  if (diasParaVencimento === 0) return TEMPLATES.D0;
+  if (diasParaVencimento === -1 || diasParaVencimento === -2) return TEMPLATES.D1;
+  if (diasParaVencimento === -3 || diasParaVencimento === -4) return TEMPLATES.D3;
+  if (diasParaVencimento === -5) return TEMPLATES.D5;
+  return null;
+}
+
+/**
+ * Verifica no Supabase se este NF + template já foi enviado.
+ * Usa Supabase porque o arquivo local não persiste no Railway entre execuções.
+ */
+async function jaFoiEnviadoSupabase(nfNumero, templateNome) {
+  const { data } = await supabase
+    .from('cobranca_mensagens')
+    .select('id')
+    .eq('nf_numero', String(nfNumero))
+    .eq('template_nome', templateNome)
+    .eq('direcao', 'enviada')
+    .limit(1);
+  return !!(data && data.length > 0);
+}
+
+/**
  * Retorna a configuração do template baseada nos dias úteis de atraso:
  *   D+1, D+2 → template 1 (com PDF)
  *   D+3, D+4 → template 3 (com PDF)
@@ -322,10 +349,14 @@ async function executarCobranca() {
           continue;
         }
 
-        // Verificar se já foi enviado hoje
-        const chaveEnvio = `${titulo.NUFIN}_D${Math.abs(diasParaVencimento)}`;
-        if (controleEnvios.jaFoiEnviado(chaveEnvio)) {
-          console.log(`   ⏭️  NUFIN ${titulo.NUFIN} (D+${Math.abs(diasParaVencimento)}) - Já enviado hoje`);
+        // Verificar no Supabase se este template já foi enviado para este NF
+        const templateNome = obterTemplateNome(diasParaVencimento);
+        if (!templateNome) { ignorados++; continue; }
+
+        const nfNumeroCheck = String(titulo.NUMNOTA || titulo.NUFIN);
+        const jaEnviado = await jaFoiEnviadoSupabase(nfNumeroCheck, templateNome);
+        if (jaEnviado) {
+          console.log(`   ⏭️  NF ${nfNumeroCheck} (${templateNome}) - Já enviado anteriormente`);
           ignorados++;
           continue;
         }
@@ -383,16 +414,6 @@ async function executarCobranca() {
           String(tituloCompleto.NUMNOTA || titulo.NUFIN),
           wamid
         ).catch(e => console.warn('Supabase log error:', e.message));
-
-        // Registrar envio
-        controleEnvios.registrarEnvio(chaveEnvio, {
-          nufin: titulo.NUFIN,
-          codparc: titulo.CODPARC,
-          numnota: titulo.NUMNOTA,
-          whatsapp: numeroWhatsApp,
-          tipo: config.tipo,
-          template: config.nome
-        });
 
         console.log(`      ✅ Enviado com sucesso!`);
         enviados++;
