@@ -83,10 +83,11 @@ function calcularDiasUteisAtraso(dataVencStr) {
   // Se vencimento efetivo ainda não chegou ou é hoje, não está atrasado
   if (vencEfetivo >= hoje) return 0;
 
-  // Contar dias úteis entre vencimento efetivo e hoje (exclusive hoje)
+  // Contar dias úteis desde o vencimento REAL (não o efetivo)
+  // Ex: vence sábado, segunda é tolerância, terça conta desde sábado
   let diasUteis = 0;
-  const cursor = new Date(vencEfetivo);
-  cursor.setDate(cursor.getDate() + 1); // começa no dia seguinte ao vencimento efetivo
+  const cursor = new Date(venc);
+  cursor.setDate(cursor.getDate() + 1); // começa no dia seguinte ao vencimento real
 
   while (cursor < hoje) {
     if (isDiaUtil(cursor)) diasUteis++;
