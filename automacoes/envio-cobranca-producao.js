@@ -142,7 +142,7 @@ const TEMPLATES = {
   D0: process.env.META_TEMPLATE_D0 || 'no_vencimento', // no dia do vencimento (com PDF)
   D1: process.env.META_TEMPLATE_D1 || '1_apos_3dias',  // 1-2 dias de atraso (com PDF)
   D3: process.env.META_TEMPLATE_D3 || '2_apos_3dias',  // 3-4 dias de atraso (com PDF)
-  D5: process.env.META_TEMPLATE_D5 || '2_apos_5dias'   // 5 dias de atraso
+  D5: process.env.META_TEMPLATE_D5 || '3_apo_5dias'    // 5 dias de atraso
 };
 
 /**
@@ -212,7 +212,6 @@ function obterConfigTemplate(diasParaVencimento, titulo, parceiro, mediaId = nul
   const componenteBody5 = {
     type: 'body',
     parameters: [
-      { type: 'text', parameter_name: 'nome_cliente', text: primeiroNome },
       { type: 'text', parameter_name: 'nf_numero', text: nfNumero },
       { type: 'text', parameter_name: 'data_vencimento', text: dataVencimento },
       { type: 'text', parameter_name: 'valor_boleto', text: valorBoleto }
