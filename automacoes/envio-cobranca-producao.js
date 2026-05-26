@@ -258,13 +258,13 @@ function obterConfigTemplate(diasParaVencimento, titulo, parceiro, mediaId = nul
     };
   }
 
-  // D+5 → template 5
+  // D+5 → template 5 (com PDF — template tem header de documento)
   if (diasParaVencimento === -5) {
     return {
       nome: TEMPLATES.D5,
       tipo: 'D+5',
-      precisaDocumento: false,
-      components: [componenteBody5]
+      precisaDocumento: true,
+      components: [componenteHeader(mediaId), componenteBody5]
     };
   }
 
